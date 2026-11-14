@@ -66,9 +66,8 @@ class TestReporter {
   readonly context = getCheckRunContext()
 
   constructor() {
-    // Retry transient GitHub API failures (5xx, rate limits) instead of failing the whole job (#246).
-    // Backoff is (retryCount + 1)^2 * retryAfterBaseValue: waits of 2s, 8s, 18s, 32s, 50s (~110s total).
-    this.octokit = github.getOctokit(this.token, {retry: {retries: 5, retryAfterBaseValue: 2000}}, retry)
+    // Retry 5xx and 429 responses with the plugin defaults (#246).
+    this.octokit = github.getOctokit(this.token, {}, retry)
 
     if (this.listSuites !== 'all' && this.listSuites !== 'failed' && this.listSuites !== 'none') {
       core.setFailed(`Input parameter 'list-suites' has invalid value`)
