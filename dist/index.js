@@ -54469,7 +54469,7 @@ function isDebug() {
  * @param message debug message
  */
 function core_debug(message) {
-    issueCommand('debug', {}, message);
+    command_issueCommand('debug', {}, message);
 }
 /**
  * Adds an error issue
@@ -62001,28 +62001,31 @@ class NetteTesterJunitParser {
     }
 }
 
+;// CONCATENATED MODULE: external "node:timers/promises"
+const external_node_timers_promises_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:timers/promises");
 ;// CONCATENATED MODULE: ./lib/utils/retry-utils.js
 
-const sleep = async (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const retryDelays = [1000, 2000, 4000, 8000];
+
+const retryDelaysMs = [1000, 2000, 4000, 8000];
 /**
  * Retries `fn` while it fails with HTTP 404.
  * Only meant for calls on a resource this run just created, where a 404 means GitHub has not caught up yet (#866).
  * Any other error, or a 404 after the last delay, is rethrown.
  */
-async function retryOnNotFound(fn, wait = sleep) {
-    for (let attempt = 0;; attempt++) {
+async function retryOnNotFound(fn, wait = external_node_timers_promises_namespaceObject.setTimeout) {
+    for (const [retry, delayMs] of retryDelaysMs.entries()) {
         try {
             return await fn();
         }
         catch (error) {
-            if (error.status !== 404 || attempt >= retryDelays.length) {
+            if (error.status !== 404) {
                 throw error;
             }
-            info(`Got 404, retrying in ${retryDelays[attempt] / 1000}s (attempt ${attempt + 1} of ${retryDelays.length})`);
-            await wait(retryDelays[attempt]);
+            core_debug(`GitHub has not made the newly created check run available yet. Retrying the update in ${delayMs / 1000}s (retry ${retry + 1} of ${retryDelaysMs.length}).`);
+            await wait(delayMs);
         }
     }
+    return fn();
 }
 
 ;// CONCATENATED MODULE: ./lib/parsers/unreal-engine/unreal-json-parser.js

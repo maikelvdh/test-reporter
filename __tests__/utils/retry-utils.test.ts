@@ -23,10 +23,12 @@ describe('retryOnNotFound', () => {
     expect(wait.mock.calls).toEqual([[1000], [2000]])
   })
 
-  it('rethrows the 404 once the delays are used up', async () => {
+  it('rethrows the 404 after five attempts', async () => {
     const fn = jest.fn<() => Promise<string>>().mockRejectedValue(httpError(404))
-    await expect(retryOnNotFound(fn, noWait)).rejects.toMatchObject({status: 404})
+    const wait = jest.fn(noWait)
+    await expect(retryOnNotFound(fn, wait)).rejects.toMatchObject({status: 404})
     expect(fn).toHaveBeenCalledTimes(5)
+    expect(wait.mock.calls).toEqual([[1000], [2000], [4000], [8000]])
   })
 
   it('does not retry other errors', async () => {

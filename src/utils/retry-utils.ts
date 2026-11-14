@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
+import {setTimeout as sleep} from 'node:timers/promises'
 
-const sleep = async (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
-const retryDelays = [1000, 2000, 4000, 8000]
+const retryDelaysMs = [1000, 2000, 4000, 8000]
 
 /**
  * Retries `fn` while it fails with HTTP 404.
@@ -10,19 +10,21 @@ const retryDelays = [1000, 2000, 4000, 8000]
  */
 export async function retryOnNotFound<T>(
   fn: () => Promise<T>,
-  wait: (ms: number) => Promise<void> = sleep
+  wait: (delayMs: number) => Promise<void> = sleep
 ): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
+  for (const [retry, delayMs] of retryDelaysMs.entries()) {
     try {
       return await fn()
     } catch (error) {
-      if ((error as {status?: number}).status !== 404 || attempt >= retryDelays.length) {
+      if ((error as {status?: number}).status !== 404) {
         throw error
       }
-      core.info(
-        `Got 404, retrying in ${retryDelays[attempt] / 1000}s (attempt ${attempt + 1} of ${retryDelays.length})`
+      core.debug(
+        `GitHub has not made the newly created check run available yet. Retrying the update in ${delayMs / 1000}s (retry ${retry + 1} of ${retryDelaysMs.length}).`
       )
-      await wait(retryDelays[attempt])
+      await wait(delayMs)
     }
   }
+
+  return fn()
 }
